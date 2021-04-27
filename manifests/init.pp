@@ -26,10 +26,6 @@ class resolv (
   Variant[Array, Undef] $search = undef,
   Variant[Array, Undef] $options = undef
 ) {
-  if $nameservers {
-    $nameservers_string = join($nameservers, ' ')
-  }
-
   if $search {
     $search_string = join($search, ' ')
   }
@@ -39,27 +35,6 @@ class resolv (
   }
 
   case $::osfamily {
-    'Solaris': {
-      if $nameservers {
-        exec { "dnsclient.setprop.${nameservers_string}":
-          command => "/usr/sbin/svccfg -s network/dns/client setprop config/nameserver = net_address: \'\"${nameservers_string}\"\'; /usr/sbin/svccfg -s network/dns/client refresh",
-          unless  => "grep '${nameservers_string}' /etc/resolv.conf",
-        }
-      }
-      if $search {
-        exec { "dnsclient.setprop.${search_string}":
-          command => "/usr/sbin/svccfg -s network/dns/client setprop config/search = \'\"${search_string}\"\'; /usr/sbin/svccfg -s network/dns/client refresh",
-          unless  => "grep '${search_string}' /etc/resolv.conf",
-        }
-      }
-
-      if $options {
-        exec { "dnsclient.setprop.${options_string}":
-          command => "/usr/sbin/svccfg -s network/dns/client setprop config/options = \'\"${options_string}\"\'; /usr/sbin/svccfg -s network/dns/client refresh",
-          unless  => "grep '${options_string}' /etc/resolv.conf",
-        }
-      }
-    }
     'Debian': {
       package { 'resolvconf':
         ensure => installed,
@@ -70,7 +45,7 @@ class resolv (
         content => template('resolv/resolv.conf.erb'),
       }
       ~>
-      exec { "resovconfupdate":
+      exec { 'resovconfupdate':
         command     => '/sbin/resolvconf -u',
         refreshonly => true,
       }
